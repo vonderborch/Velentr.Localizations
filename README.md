@@ -2,8 +2,7 @@
 A simple and easy-to-use localization helper library.
 
 # Installation
-There are nuget packages available for Monogame and FNA.
-- [Velentr.Localizations](https://www.nuget.org/packages/Velentr.Localizations/)
+A nuget package is available: [Velentr.Localizations](https://www.nuget.org/packages/Velentr.Localizations/)
 
 # Basic Usage
 ```
