@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 
 namespace Velentr.Localizations
@@ -7,27 +8,38 @@ namespace Velentr.Localizations
     /// <summary>
     ///     Defines a language (a set of localized text and the locale it is a part of)
     /// </summary>
-    internal class Language
+    internal class Localization
     {
 
         /// <summary>
         ///     The cache
         /// </summary>
-        private readonly Dictionary<string, string> _cache;
+        private Dictionary<string, string> _cache;
 
         /// <summary>
-        ///     Initializes a new instance of the <see cref="Language" /> class.
+        ///     Initializes a new instance of the <see cref="Localization" /> class.
         /// </summary>
         /// <param name="system">The system.</param>
         /// <param name="locale">The locale.</param>
         /// <param name="defaultLocale">The default locale.</param>
-        internal Language(LocalizationSystem system, string locale, string defaultLocale = null)
+        /// <param name="enableMachineTranslation">Whether to enable machine translations.</param>
+        internal Localization(LocalizationSystem system, string locale, string defaultLocale = null, bool enableMachineTranslation = false)
         {
             LocalizationSystem = system;
             Locale = locale;
             DefaultLocale = defaultLocale;
+            MachineTranslationEnabled = enableMachineTranslation;
 
             _cache = new Dictionary<string, string>();
+
+            if (enableMachineTranslation)
+            {
+                // validate that the language pairs are valid!
+                if (!LocalizationSystem.Apertium.IsValidPair(locale, defaultLocale))
+                {
+                    throw new Exception($"Invalid language pair! Valid Pairs: {system.Apertium.GetValidPairsString()}");
+                }
+            }
         }
 
         /// <summary>
@@ -53,6 +65,15 @@ namespace Velentr.Localizations
         ///     The default locale.
         /// </value>
         internal string DefaultLocale { get; }
+
+        /// <summary>
+        ///     Gets a value indicating whether the machine translation is enabled.
+        /// </summary>
+        ///
+        /// <value>
+        ///     True if machine translation enabled, false if not.
+        /// </value>
+        internal bool MachineTranslationEnabled { get; }
 
         /// <summary>
         ///     Clears the cache.
@@ -144,6 +165,14 @@ namespace Velentr.Localizations
             if (_cache.TryGetValue(key, out var value))
             {
                 return value;
+            }
+
+            if (MachineTranslationEnabled)
+            {
+                var defaultLocaleLocalization = LocalizationSystem.GetLocalization(key, DefaultLocale);
+                var translation = LocalizationSystem.Apertium.Translate(defaultLocaleLocalization);
+                _cache.Add(key, translation);
+                return translation;
             }
 
             return LocalizationSystem.GetLocalization(key, DefaultLocale);
