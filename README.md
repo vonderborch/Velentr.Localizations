@@ -12,9 +12,36 @@ localizationSystem.AddLanguage("es", "en");
 localizationSystem.AddLocalization("key", "hello world!", "en");
 localizationSystem.AddLocalization("key", "hola mundo!", "es");
 
-var localizedText = localizationSystem.GetLocalization("key", "en");
-Console.WriteLine(localizedText);
+var localizedTextEs = localizationSystem.GetLocalization("key", "es");
+var localizedTextEn = localizationSystem.GetLocalization("key", "en");
+Console.WriteLine(localizedTextEn);
+Console.WriteLine(localizedTextEs);
+// "hello world!"
+// "hola mundo!"
 ```
+
+# Machine Translations
+Machine translations can be enabled when adding a language by setting the `enableMachineTranslation` parameter when adding a new language. When this parameter is set, we'll reach out to the configured [Apertium](https://apertium.org/) client (which can be configured using the `localizationSystem.ConfigureApertiumClient()` method) to generate machine translations for any text that isn't already cached for that language. The language we'll count as translating from will be the `defaultLocale` for the language and the language we'll translate to will be the `locale` language.
+
+### Example:
+```
+var localizationSystem = new LocalizationSystem("eng");
+localizationSystem.AddLanguage("spa", "eng", enableMachineTranslation: true);
+localizationSystem.AddLocalization("key", "hello world!", "eng");
+
+var localizedTextEng = localizationSystem.GetLocalization("key", "eng");
+var localizedTextSpa = localizationSystem.GetLocalization("key", "spa");
+Console.WriteLine(localizedTextEng);
+Console.WriteLine(localizedTextSpa);
+// "hello world!"
+// "hola mundo!"
+```
+
+### Notes
+- Locales must be specified in the three-letter codes that Apertium uses. To see all valid pairs on the configured Apertium client you can use the `localizationSystem.Apertium.GetValidPairs()` method.
+- Please make sure to follow any/all licenses that are applicable for your projects as per the licenses of [Apertium](https://github.com/apertium) if utilizing this functionality!
+- Other methods of the Apertium client can be used as per the [client's documentation](https://github.com/vonderborch/Apertium.Net), but referenced via `localizationSystem.Apertium`.
+- Support for other translation methods will come in a future update.
 
 # Extensibility
 Velentr.Localizations comes with two built-in localization loaders, the `YamlLocalizationLoader` and the `KeyValuePairXmlLocalizationLoader`. Other loaders can be used instead by creating a new loader inheriting from the `LocalizationLoader` abstract class, then when initializing the LocalizationSystem just pass in the new loader.

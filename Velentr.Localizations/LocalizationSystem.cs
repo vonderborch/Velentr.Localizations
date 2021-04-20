@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using Apertium.Net;
 using Velentr.Localizations.LocalizationLoaders;
 
 namespace Velentr.Localizations
@@ -15,7 +16,12 @@ namespace Velentr.Localizations
         /// <summary>
         /// The locales
         /// </summary>
-        private Dictionary<string, Language> _locales;
+        private Dictionary<string, Localization> _locales;
+
+        /// <summary>
+        ///     The apertium client.
+        /// </summary>
+        private ApertiumClient _apertiumClient;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LocalizationSystem"/> class.
@@ -24,7 +30,7 @@ namespace Velentr.Localizations
         /// <param name="loader">The loader.</param>
         public LocalizationSystem(string defaultLocalization, LocalizationLoader loader = null)
         {
-            _locales = new Dictionary<string, Language>();
+            _locales = new Dictionary<string, Localization>();
             DefaultLocalization = defaultLocalization;
             CurrentLocalization = defaultLocalization;
             LocalizationLoader = loader;
@@ -57,14 +63,35 @@ namespace Velentr.Localizations
         public LocalizationLoader LocalizationLoader { get; set; }
 
         /// <summary>
+        ///     Gets the apertium.
+        /// </summary>
+        ///
+        /// <value>
+        ///     The apertium.
+        /// </value>
+        public ApertiumClient Apertium => _apertiumClient;
+
+        /// <summary>
+        ///     Configures the Apertium client.
+        /// </summary>
+        ///
+        /// <param name="baseApiUrl"> (Optional) URL of the base API. </param>
+        /// <param name="apiKey">     (Optional) The API key. </param>
+        public void ConfigureApertiumClient(string baseApiUrl = null, string apiKey = null)
+        {
+            _apertiumClient = new ApertiumClient(baseApiUrl, apiKey, true);
+        }
+
+        /// <summary>
         /// Adds a new language.
         /// </summary>
         /// <param name="locale">The locale.</param>
         /// <param name="defaultLocale">The default locale. Defaults to the DefaultLocale.</param>
         /// <param name="conflictResolution">The conflict resolution.</param>
+        /// <param name="enableMachineTranslation">Whether to enable machine translations.</param>
         /// <returns>Whether we were able to successfully add the locale.</returns>
         /// <exception cref="DuplicateNameException">The locale [{locale}] already exists!</exception>
-        public bool AddLanguage(string locale, string defaultLocale = null, ConflictResolution conflictResolution = ConflictResolution.RaiseException)
+        public bool AddLanguage(string locale, string defaultLocale = null, ConflictResolution conflictResolution = ConflictResolution.RaiseException, bool enableMachineTranslation = false)
         {
             if (_locales.ContainsKey(locale))
             {
@@ -80,7 +107,7 @@ namespace Velentr.Localizations
                 }
             }
 
-            _locales.Add(locale, new Language(this, locale, DefaultLocalization == locale ? null : (defaultLocale ?? DefaultLocalization)));
+            _locales.Add(locale, new Localization(this, locale, DefaultLocalization == locale ? null : (defaultLocale ?? DefaultLocalization), enableMachineTranslation));
             return true;
         }
 
@@ -91,8 +118,9 @@ namespace Velentr.Localizations
         /// <param name="locale">The locale. Defaults to the CurrentLocale.</param>
         /// <param name="loadMode">The load mode. Defaults to LocalizationLoadMode.Truncate.</param>
         /// <param name="conflictResolution">The conflict resolution. Defaults to ConflictResolution.RaiseException.</param>
+        /// <param name="enableMachineTranslation">Whether to enable machine translations.</param>
         /// <exception cref="KeyNotFoundException">The locale [{actualLocale}] does not exist!</exception>
-        public void LoadLocalization(string fileContents, string locale = null, bool autoAddLocale = false, LocalizationLoadMode loadMode = LocalizationLoadMode.Truncate, ConflictResolution conflictResolution = ConflictResolution.RaiseException)
+        public void LoadLocalization(string fileContents, string locale = null, bool autoAddLocale = false, LocalizationLoadMode loadMode = LocalizationLoadMode.Truncate, ConflictResolution conflictResolution = ConflictResolution.RaiseException, bool enableMachineTranslation = false)
         {
             if (LocalizationLoader == null)
             {
@@ -103,7 +131,7 @@ namespace Velentr.Localizations
             var actualLocale = GetAndCheckActualLocale(locale, !autoAddLocale);
             if (!actualLocale.Item2 && autoAddLocale)
             {
-                AddLanguage(actualLocale.Item1, DefaultLocalization, ConflictResolution.Skip);
+                AddLanguage(actualLocale.Item1, DefaultLocalization, ConflictResolution.Skip, enableMachineTranslation);
             }
 
             // run the loader against the file contents
@@ -120,8 +148,9 @@ namespace Velentr.Localizations
         /// <param name="locale">The locale. Defaults to the CurrentLocale.</param>
         /// <param name="loadMode">The load mode. Defaults to LocalizationLoadMode.Truncate.</param>
         /// <param name="conflictResolution">The conflict resolution. Defaults to ConflictResolution.RaiseException.</param>
+        /// <param name="enableMachineTranslation">Whether to enable machine translations.</param>
         /// <exception cref="KeyNotFoundException">The locale [{actualLocale}] does not exist!</exception>
-        public void LoadLocalizationFromFilePath(string filePath, string locale = null, bool autoAddLocale = false, LocalizationLoadMode loadMode = LocalizationLoadMode.Truncate, ConflictResolution conflictResolution = ConflictResolution.RaiseException)
+        public void LoadLocalizationFromFilePath(string filePath, string locale = null, bool autoAddLocale = false, LocalizationLoadMode loadMode = LocalizationLoadMode.Truncate, ConflictResolution conflictResolution = ConflictResolution.RaiseException, bool enableMachineTranslation = false)
         {
             if (LocalizationLoader == null)
             {
@@ -132,7 +161,7 @@ namespace Velentr.Localizations
             var actualLocale = GetAndCheckActualLocale(locale, !autoAddLocale);
             if (!actualLocale.Item2 && autoAddLocale)
             {
-                AddLanguage(actualLocale.Item1, DefaultLocalization, ConflictResolution.Skip);
+                AddLanguage(actualLocale.Item1, DefaultLocalization, ConflictResolution.Skip, enableMachineTranslation);
             }
 
             // run the loader against the file contents
@@ -149,8 +178,9 @@ namespace Velentr.Localizations
         /// <param name="locale">The locale. Defaults to the CurrentLocale.</param>
         /// <param name="loadMode">The load mode. Defaults to LocalizationLoadMode.Truncate.</param>
         /// <param name="conflictResolution">The conflict resolution. Defaults to ConflictResolution.RaiseException.</param>
+        /// <param name="enableMachineTranslation">Whether to enable machine translations.</param>
         /// <exception cref="KeyNotFoundException">The locale [{actualLocale}] does not exist!</exception>
-        public void LoadLocalization(Stream file, string locale = null, bool autoAddLocale = false, LocalizationLoadMode loadMode = LocalizationLoadMode.Truncate, ConflictResolution conflictResolution = ConflictResolution.RaiseException)
+        public void LoadLocalization(Stream file, string locale = null, bool autoAddLocale = false, LocalizationLoadMode loadMode = LocalizationLoadMode.Truncate, ConflictResolution conflictResolution = ConflictResolution.RaiseException, bool enableMachineTranslation = false)
         {
             if (LocalizationLoader == null)
             {
@@ -161,7 +191,7 @@ namespace Velentr.Localizations
             var actualLocale = GetAndCheckActualLocale(locale, !autoAddLocale);
             if (!actualLocale.Item2 && autoAddLocale)
             {
-                AddLanguage(actualLocale.Item1, DefaultLocalization, ConflictResolution.Skip);
+                AddLanguage(actualLocale.Item1, DefaultLocalization, ConflictResolution.Skip, enableMachineTranslation);
             }
 
             // run the loader against the file contents
