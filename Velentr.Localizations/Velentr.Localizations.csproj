@@ -12,6 +12,15 @@
     <Version>1.1.0</Version>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath></OutputPath>
+    <DocumentationFile></DocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>..\release</OutputPath>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Apertium.Net" Version="1.0.1" />
     <PackageReference Include="YamlDotNet" Version="11.1.1" />
